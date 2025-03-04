@@ -1,0 +1,1 @@
+# bitrise-step-xcode-test-shard-calculation
