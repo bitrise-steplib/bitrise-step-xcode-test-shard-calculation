@@ -1,0 +1,95 @@
+---
+title: Xcode test shard calculation
+summary: Calculates the test shards for your Xcode tests.
+description: |-
+  TBD
+website: https://github.com/bitrise-steplib/bitrise-step-xcode-test-shard-calculation
+source_code_url: https://github.com/bitrise-steplib/bitrise-step-xcode-test-shard-calculation
+support_url: https://github.com/bitrise-steplib/bitrise-step-xcode-test-shard-calculation
+
+type_tags:
+- test
+
+project_type_tags:
+- ios
+- macos
+- react-native
+- cordova
+- ionic
+- flutter
+
+toolkit:
+  go:
+    package_name: github.com/bitrise-steplib/bitrise-step-xcode-test-shard-calculation
+
+inputs:
+- product_path:
+  opts:
+    title: Product path
+    summary: |-
+      The path of the test bundle.
+    description: |-
+      The path of the test bundle.
+
+      The step supports the following formats:
+      - xcresrun
+      - xctestproducts
+
+      It will use the specified file to collect the built tests and generate the test shards.
+    is_required: true
+
+- shard_count:
+  opts:
+    title: Shard count
+    summary: |-
+      The number of test shards to create.
+    description: |-
+      The number of test shards to create.
+
+      The output folder will contain `shard_count` number of files, each containing the tests to run in that shard.
+    is_required: true
+
+- shard_calculation: alphabetically
+  opts:
+    title: Shard calculation strategy
+    summary: |-
+      Defines the strategy to use when splitting the tests into shards
+    description: |-
+      Defines the strategy to use when splitting the tests into shards
+
+      The available options are:
+      - `alphabetically`: The tests are sorted alphabetically and split into shards
+    is_required: true
+    value_options:
+    - alphabetically
+
+- destination: platform=iOS Simulator,name=Bitrise iOS default,OS=latest
+  opts:
+    title: Device destination specifier
+    summary: Destination specifier describes the device to use as a destination.
+    description: |-
+      Destination specifier describes the device to use as a destination.
+
+      The input value sets xcodebuild's `-destination` option.
+
+      In a CI environment, a Simulator device called `Bitrise iOS default` is already created.
+      It is a compatible device with the selected Simulator runtime, pre-warmed for better performance.
+
+      If a device with this name is not found (e.g. in a local dev environment), the first matching device will be selected.
+    is_required: true
+
+- verbose: "false"
+  opts:
+    category: Debugging
+    title: Enable verbose logging
+    summary: Enable logging additional information for debugging.
+    is_required: true
+    value_options:
+    - "true"
+    - "false"
+
+outputs:
+- BITRISE_TEST_SHARDS_PATH:
+  opts:
+    title: Test shards location
+    summary: This folder contains the generated test shard information.
