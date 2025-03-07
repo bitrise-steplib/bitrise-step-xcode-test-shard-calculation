@@ -13,6 +13,7 @@ import (
 	"github.com/bitrise-io/go-steputils/v2/export"
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
 	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-xcode/v2/destination"
 	"github.com/bitrise-steplib/bitrise-step-xcode-test-shard-calculation/mocks"
 )
 
@@ -178,7 +179,6 @@ func TestExport(t *testing.T) {
 }
 
 type testingMocks struct {
-	envRepository  *mocks.Repository
 	commandFactory *mocks.Factory
 	command        *mocks.Command
 }
@@ -188,11 +188,17 @@ func createStepAndMocks(t *testing.T) (Step, testingMocks) {
 	inputParser := stepconf.NewInputParser(envRepository)
 	commandFactory := new(mocks.Factory)
 	command := new(mocks.Command)
+	deviceFinder := new(mocks.DeviceFinder)
 	exporter := export.NewExporter(commandFactory)
-	step := NewStep(inputParser, commandFactory, exporter, log.NewLogger())
+	step := NewStep(inputParser, commandFactory, deviceFinder, exporter, log.NewLogger())
+
+	device := destination.Device{
+		Name: "test-device",
+		UDID: "test-udid",
+	}
+	deviceFinder.On("FindDevice", mock.Anything).Return(device, nil)
 
 	m := testingMocks{
-		envRepository:  envRepository,
 		commandFactory: commandFactory,
 		command:        command,
 	}
