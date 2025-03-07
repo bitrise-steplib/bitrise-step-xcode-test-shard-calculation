@@ -11,6 +11,8 @@ import (
 	"github.com/bitrise-io/go-utils/v2/errorutil"
 	. "github.com/bitrise-io/go-utils/v2/exitcode"
 	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-xcode/v2/destination"
+	"github.com/bitrise-io/go-xcode/v2/xcodeversion"
 	"github.com/bitrise-steplib/bitrise-step-xcode-test-shard-calculation/step"
 )
 
@@ -52,5 +54,12 @@ func createStep(logger log.Logger) step.Step {
 	commandFactory := command.NewFactory(envRepository)
 	exporter := export.NewExporter(commandFactory)
 
-	return step.NewStep(inputParser, commandFactory, exporter, logger)
+	xcodeversionProvider := xcodeversion.NewXcodeVersionProvider(commandFactory)
+	xcodeVersion, err := xcodeversionProvider.GetVersion()
+	if err != nil { // not a fatal error, continuing with version left empty
+		logger.Errorf("failed to read Xcode version: %s", err)
+	}
+	deviceFinder := destination.NewDeviceFinder(logger, commandFactory, xcodeVersion)
+
+	return step.NewStep(inputParser, commandFactory, deviceFinder, exporter, logger)
 }

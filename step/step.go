@@ -13,6 +13,7 @@ import (
 	"github.com/bitrise-io/go-utils/retry"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/log"
+	"github.com/bitrise-io/go-xcode/v2/destination"
 )
 
 const (
@@ -43,6 +44,7 @@ type Result struct {
 type Step struct {
 	inputParser    stepconf.InputParser
 	commandFactory command.Factory
+	deviceFinder   destination.DeviceFinder
 	exporter       export.Exporter
 	logger         log.Logger
 }
@@ -50,12 +52,14 @@ type Step struct {
 func NewStep(
 	inputParser stepconf.InputParser,
 	commandFactory command.Factory,
+	deviceFinder destination.DeviceFinder,
 	exporter export.Exporter,
 	logger log.Logger,
 ) Step {
 	return Step{
 		inputParser:    inputParser,
 		commandFactory: commandFactory,
+		deviceFinder:   deviceFinder,
 		exporter:       exporter,
 		logger:         logger,
 	}
@@ -71,11 +75,19 @@ func (s *Step) ProcessConfig() (*Config, error) {
 	stepconf.Print(input)
 	s.logger.EnableDebugLog(input.Verbose)
 
+	simulator, err := s.getSimulatorForDestination(input.Destination)
+	if err != nil {
+		return nil, err
+	}
+
+	s.logger.Infof("Simulator device:")
+	s.logger.Printf("- name: %s, version: %s, UDID: %s, state: %s", simulator.Name, simulator.OS, simulator.UDID, simulator.State)
+
 	return &Config{
 		ProductPath:      input.ProductPath,
 		ShardCount:       input.ShardCount,
 		ShardCalculation: input.ShardCalculation,
-		Destination:      input.Destination,
+		Destination:      simulator.XcodebuildDestination(),
 	}, nil
 }
 
@@ -148,6 +160,21 @@ func (s *Step) Export(result Result) error {
 	}
 
 	return nil
+}
+
+func (s *Step) getSimulatorForDestination(destinationSpecifier string) (destination.Device, error) {
+	simulatorDestination, err := destination.NewSimulator(destinationSpecifier)
+	if err != nil {
+		return destination.Device{}, fmt.Errorf("invalid destination specifier (%s): %w", destinationSpecifier, err)
+	}
+
+	s.logger.Println()
+	device, err := s.deviceFinder.FindDevice(*simulatorDestination)
+	if err != nil {
+		return destination.Device{}, fmt.Errorf("simulator UDID lookup failed: %w", err)
+	}
+
+	return device, nil
 }
 
 func (s *Step) collectTests(testProductsPath, destination string) ([]string, error) {
