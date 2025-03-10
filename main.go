@@ -28,20 +28,20 @@ func run() ExitCode {
 	config, err := testSharder.ProcessConfig()
 	if err != nil {
 		logger.Println()
-		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to process Step inputs: %w", err)))
+		logger.Errorf("%s", errorutil.FormattedError(fmt.Errorf("Failed to process Step inputs: %w", err)))
 		return Failure
 	}
 
 	result, err := testSharder.Run(*config)
 	if err != nil {
 		logger.Println()
-		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to execute Step: %w", err)))
+		logger.Errorf("%s", errorutil.FormattedError(fmt.Errorf("Failed to execute Step: %w", err)))
 		return Failure
 	}
 
 	if err := testSharder.Export(result); err != nil {
 		logger.Println()
-		logger.Errorf(errorutil.FormattedError(fmt.Errorf("Failed to export outputs: %w", err)))
+		logger.Errorf("%s", errorutil.FormattedError(fmt.Errorf("Failed to export outputs: %w", err)))
 		return Failure
 	}
 

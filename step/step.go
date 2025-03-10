@@ -10,6 +10,7 @@ import (
 
 	"github.com/bitrise-io/go-steputils/v2/export"
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
+	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/bitrise-io/go-utils/retry"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/log"
@@ -80,8 +81,15 @@ func (s *Step) ProcessConfig() (*Config, error) {
 		return nil, err
 	}
 
-	s.logger.Infof("Simulator device:")
-	s.logger.Printf("- name: %s, version: %s, UDID: %s, state: %s", simulator.Name, simulator.OS, simulator.UDID, simulator.State)
+	s.logger.Println()
+	s.logger.Infof("Destination simulator:")
+	s.logger.Printf("Name: %s", colorstring.Cyan(simulator.Name))
+	if simulator.Name != simulator.Type {
+		s.logger.Printf("Device type: %s", colorstring.Cyan(simulator.Type))
+	}
+	s.logger.Printf("OS: %s %s", colorstring.Cyan(simulator.Platform), colorstring.Cyan(simulator.OS))
+	s.logger.Printf("UDID: %s", colorstring.Cyan(simulator.UDID))
+	s.logger.Printf("Status: %s", colorstring.Cyan(simulator.State))
 
 	return &Config{
 		ProductPath:      input.ProductPath,
