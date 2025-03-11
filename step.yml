@@ -9,9 +9,6 @@ description: |-
   [Xcode Test without building](https://www.bitrise.io/integrations/steps/xcode-test-without-building) step's `Test Selection`
   input to specify which test shard information to use.
 
-  ### Useful links
-  TBD
-
   ### Related Steps
   - [Xcode Test without building](https://www.bitrise.io/integrations/steps/xcode-test-without-building)
 website: https://github.com/bitrise-steplib/bitrise-step-xcode-test-shard-calculation
