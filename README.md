@@ -14,9 +14,6 @@ These shards can be used to run the tests in parallel, which can significantly s
 [Xcode Test without building](https://www.bitrise.io/integrations/steps/xcode-test-without-building) step's `Test Selection`
 input to specify which test shard information to use.
 
-### Useful links
-TBD
-
 ### Related Steps
 - [Xcode Test without building](https://www.bitrise.io/integrations/steps/xcode-test-without-building)
 </details>
