@@ -10,7 +10,6 @@ import (
 
 	"github.com/bitrise-io/go-steputils/v2/export"
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
-	"github.com/bitrise-io/go-utils/colorstring"
 	"github.com/bitrise-io/go-utils/retry"
 	"github.com/bitrise-io/go-utils/v2/command"
 	"github.com/bitrise-io/go-utils/v2/log"
@@ -25,6 +24,7 @@ var ErrXcodebuildFailed = errors.New("unexpected xcodebuild failure")
 
 type Input struct {
 	ProductPath      string `env:"product_path,required"`
+	TestPlan         string `env:"test_plan"`
 	ShardCount       int    `env:"shard_count,required"`
 	ShardCalculation string `env:"shard_calculation,opt[alphabetically]"`
 	Destination      string `env:"destination,required"`
@@ -33,6 +33,7 @@ type Input struct {
 
 type Config struct {
 	ProductPath      string
+	TestPlan         string
 	ShardCount       int
 	ShardCalculation string
 	Destination      string
@@ -108,7 +109,7 @@ func (s *Step) Run(config Config) (Result, error) {
 	err := retry.Times(3).Wait(10).TryWithAbort(func(attempt uint) (error, bool) {
 		s.logger.Infof("%d. attempt", attempt+1)
 
-		testList, err := s.collectTests(config.ProductPath, config.Destination)
+		testList, err := s.collectTests(config.ProductPath, config.TestPlan, config.Destination)
 		if err != nil {
 			if errors.Is(err, ErrXcodebuildFailed) {
 				s.logger.Warnf("Test collection failed: %s", err)
@@ -185,7 +186,7 @@ func (s *Step) getSimulatorForDestination(destinationSpecifier string) (destinat
 	return device, nil
 }
 
-func (s *Step) collectTests(testProductsPath, destination string) ([]string, error) {
+func (s *Step) collectTests(testProductsPath, testPlan, destination string) ([]string, error) {
 	tmpDir, err := createTempFolder()
 	if err != nil {
 		return nil, err
@@ -209,6 +210,10 @@ func (s *Step) collectTests(testProductsPath, destination string) ([]string, err
 		return nil, fmt.Errorf("unsupported test products file extension: %s", testProductsPath)
 	}
 
+	if testPlan != "" {
+		options = append(options, "-testPlan", testPlan)
+	}
+
 	cmd := s.commandFactory.Create("xcodebuild", options, &command.Opts{
 		Stdout: os.Stdout,
 		Stderr: os.Stdout,
@@ -228,14 +233,15 @@ func (s *Step) collectTests(testProductsPath, destination string) ([]string, err
 		return nil, err
 	}
 
-	return processTestResults(bytes)
+	return processTestResults(bytes, testPlan)
 }
 
-func processTestResults(result []byte) ([]string, error) {
+func processTestResults(result []byte, testPlan string) ([]string, error) {
 	type testData struct {
 		Errors []string `json:"errors"`
 		Values []struct {
-			Tests []struct {
+			TestPlan string `json:"testPlan"`
+			Tests    []struct {
 				Identifier string `json:"identifier"`
 			} `json:"enabledTests"`
 		} `json:"values"`
@@ -252,9 +258,17 @@ func processTestResults(result []byte) ([]string, error) {
 
 	var tests []string
 	for _, value := range data.Values {
+		if testPlan != "" && testPlan != value.TestPlan {
+			continue
+		}
+
 		for _, test := range value.Tests {
 			tests = append(tests, test.Identifier)
 		}
+	}
+
+	if len(tests) == 0 {
+		return nil, fmt.Errorf("failed to find tests for '%s' test plan", testPlan)
 	}
 
 	return tests, nil

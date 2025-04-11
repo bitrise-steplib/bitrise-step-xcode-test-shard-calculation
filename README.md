@@ -32,6 +32,7 @@ You can also run this step directly with [Bitrise CLI](https://github.com/bitris
 | Key | Description | Flags | Default |
 | --- | --- | --- | --- |
 | `product_path` | The path of the test bundle.  The step supports the following formats: - xcresrun - xctestproducts  It will use the specified file to collect the built tests and generate the test shards. | required |  |
+| `test_plan` | Shard the provided test plan's test.  Leave this input empty to run the default Test Plan or Test Targets associated with the Scheme.  The input value sets xcodebuild's `-testPlan` option. |  |  |
 | `shard_count` | The number of test shards to create.  The output folder will contain `shard_count` number of files, each containing the tests to run in that shard. | required |  |
 | `shard_calculation` | Defines the strategy to use when splitting the tests into shards  The available options are: - `alphabetically`: The tests are sorted alphabetically and split into shards | required | `alphabetically` |
 | `destination` | Destination specifier describes the device to use as a destination.  The input value sets xcodebuild's `-destination` option.  In a CI environment, a Simulator device called `Bitrise iOS default` is already created. It is a compatible device with the selected Simulator runtime, pre-warmed for better performance.  If a device with this name is not found (e.g. in a local dev environment), the first matching device will be selected. | required | `platform=iOS Simulator,name=Bitrise iOS default,OS=latest` |
