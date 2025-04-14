@@ -1,6 +1,7 @@
 package step
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,33 +18,131 @@ import (
 	"github.com/bitrise-steplib/bitrise-step-xcode-test-shard-calculation/mocks"
 )
 
+const (
+	singleTestPlan = `
+{
+  "values" : [
+    {
+      "enabledTests" : [
+        {
+          "identifier" : "Target/Class/test1"
+        },
+        {
+          "identifier" : "Target/Class/test2"
+        },
+        {
+          "identifier" : "Target/Class/test3"
+        },
+        {
+          "identifier" : "Target/Class/test4"
+        },
+        {
+          "identifier" : "Target/Class/test5"
+        },
+        {
+          "identifier" : "Target/Class/test6"
+        }
+      ],
+      "testPlan" : "Tests"
+    }
+  ]
+}
+`
+	multipleTestPlan = `
+{
+  "values" : [
+    {
+      "enabledTests" : [
+        {
+          "identifier" : "Target/Class/test1"
+        },
+        {
+          "identifier" : "Target/Class/test2"
+        }
+      ],
+      "testPlan" : "TestPlan1"
+    },
+    {
+      "enabledTests" : [
+        {
+          "identifier" : "Target/Class/test3"
+        },
+        {
+          "identifier" : "Target/Class/test4"
+        }
+      ],
+      "testPlan" : "TestPlan2"
+    }
+  ]
+}
+`
+)
+
 func TestRun(t *testing.T) {
-	step, testingMocks := createStepAndMocks(t)
-	testingMocks.command.On("PrintableCommandArgs").Return("", nil)
-	testingMocks.command.On("Run").Return(nil)
-
-	call := testingMocks.commandFactory.On("Create", "xcodebuild", mock.Anything, mock.Anything)
-	call.RunFn = func(arguments mock.Arguments) {
-		saveTestData(t, arguments)
-
-		call.ReturnArguments = mock.Arguments{testingMocks.command, nil}
+	testCases := []struct {
+		name          string
+		testPlan      string
+		testList      string
+		expectedFiles map[string]string
+		expectedError error
+	}{
+		{
+			name:     "Default test plan",
+			testList: singleTestPlan,
+			expectedFiles: map[string]string{
+				"0": "Target/Class/test1\nTarget/Class/test2\nTarget/Class/test3\n",
+				"1": "Target/Class/test4\nTarget/Class/test5\nTarget/Class/test6\n",
+			},
+		},
+		{
+			name:     "User selected test plan",
+			testPlan: "TestPlan2",
+			testList: multipleTestPlan,
+			expectedFiles: map[string]string{
+				"0": "Target/Class/test3\n",
+				"1": "Target/Class/test4\n",
+			},
+		},
+		{
+			name:          "User selects non-existing test plan",
+			testPlan:      "Does not exist",
+			testList:      multipleTestPlan,
+			expectedError: fmt.Errorf("failed to find tests for 'Does not exist' test plan"),
+		},
 	}
 
-	result, err := step.Run(Config{
-		ProductPath: "test.xctestrun",
-		ShardCount:  2,
-		Destination: "test-device",
-	})
-	require.NoError(t, err)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			step, testingMocks := createStepAndMocks(t)
+			testingMocks.command.On("PrintableCommandArgs").Return("", nil)
+			testingMocks.command.On("Run").Return(nil)
 
-	files, err := contents(t, result.TestShardsDir)
-	require.NoError(t, err)
+			call := testingMocks.commandFactory.On("Create", "xcodebuild", mock.Anything, mock.Anything)
+			call.RunFn = func(arguments mock.Arguments) {
+				saveTestData(t, arguments, testCase.testList)
 
-	expectedFiles := map[string]string{
-		"0": "Target/Class/test1\nTarget/Class/test2\nTarget/Class/test3\n",
-		"1": "Target/Class/test4\nTarget/Class/test5\nTarget/Class/test6\n",
+				call.ReturnArguments = mock.Arguments{testingMocks.command, nil}
+			}
+
+			result, err := step.Run(Config{
+				ProductPath: "test.xctestrun",
+				TestPlan:    testCase.testPlan,
+				ShardCount:  2,
+				Destination: "test-device",
+			})
+			if testCase.expectedError != nil {
+				require.EqualError(t, err, testCase.expectedError.Error())
+				return
+			} else {
+				require.NoError(t, err)
+			}
+
+			files, err := contents(t, result.TestShardsDir)
+			require.NoError(t, err)
+
+			assert.Equal(t, testCase.expectedFiles, files)
+		})
 	}
-	assert.Equal(t, expectedFiles, files)
 }
 
 func contents(t *testing.T, path string) (map[string]string, error) {
@@ -96,7 +195,7 @@ func TestSupportedProductTypes(t *testing.T) {
 
 			call := testingMocks.commandFactory.On("Create", "xcodebuild", mock.Anything, mock.Anything)
 			call.RunFn = func(arguments mock.Arguments) {
-				saveTestData(t, arguments)
+				saveTestData(t, arguments, singleTestPlan)
 
 				call.ReturnArguments = mock.Arguments{testingMocks.command, nil}
 			}
@@ -117,7 +216,7 @@ func TestSupportedProductTypes(t *testing.T) {
 	}
 }
 
-func saveTestData(t *testing.T, arguments mock.Arguments) {
+func saveTestData(t *testing.T, arguments mock.Arguments, testData string) {
 	path := ""
 	params := arguments[1].([]string)
 
@@ -132,36 +231,7 @@ func saveTestData(t *testing.T, arguments mock.Arguments) {
 		t.Fail()
 	}
 
-	data := `
-{
-  "values" : [
-    {
-      "enabledTests" : [
-        {
-          "identifier" : "Target/Class/test1"
-        },
-        {
-          "identifier" : "Target/Class/test2"
-        },
-        {
-          "identifier" : "Target/Class/test3"
-        },
-        {
-          "identifier" : "Target/Class/test4"
-        },
-        {
-          "identifier" : "Target/Class/test5"
-        },
-        {
-          "identifier" : "Target/Class/test6"
-        }
-      ],
-      "testPlan" : "Tests"
-    }
-  ]
-}
-`
-	err := os.WriteFile(path, []byte(data), 0644)
+	err := os.WriteFile(path, []byte(testData), 0644)
 	require.NoError(t, err)
 }
 

@@ -9,9 +9,6 @@ description: |-
   [Xcode Test without building](https://www.bitrise.io/integrations/steps/xcode-test-without-building) step's `Test Selection`
   input to specify which test shard information to use.
 
-  ### Useful links
-  TBD
-
   ### Related Steps
   - [Xcode Test without building](https://www.bitrise.io/integrations/steps/xcode-test-without-building)
 website: https://github.com/bitrise-steplib/bitrise-step-xcode-test-shard-calculation
@@ -48,6 +45,17 @@ inputs:
 
       It will use the specified file to collect the built tests and generate the test shards.
     is_required: true
+
+- test_plan:
+  opts:
+    title: Test Plan
+    summary: Shard the provided test plan's test.
+    description: |-
+      Shard the provided test plan's test.
+
+      Leave this input empty to run the default Test Plan or Test Targets associated with the Scheme.
+
+      The input value sets xcodebuild's `-testPlan` option.
 
 - shard_count:
   opts:
