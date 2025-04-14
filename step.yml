@@ -46,6 +46,17 @@ inputs:
       It will use the specified file to collect the built tests and generate the test shards.
     is_required: true
 
+- test_plan:
+  opts:
+    title: Test Plan
+    summary: Shard the provided test plan's test.
+    description: |-
+      Shard the provided test plan's test.
+
+      Leave this input empty to run the default Test Plan or Test Targets associated with the Scheme.
+
+      The input value sets xcodebuild's `-testPlan` option.
+
 - shard_count:
   opts:
     title: Shard count
