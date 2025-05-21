@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"strings"
 
 	"github.com/bitrise-io/go-steputils/v2/export"
 	"github.com/bitrise-io/go-steputils/v2/stepconf"
@@ -134,6 +135,7 @@ func (s *Step) Run(config Config) (Result, error) {
 
 	s.logger.Printf("Found %d tests in %s", len(tests), config.ProductPath)
 
+	tests = sanitizeTests(tests)
 	shards := shardAlphabetically(tests, config.ShardCount)
 
 	shardFolder, err := createTempFolder()
@@ -273,6 +275,16 @@ func processTestResults(result []byte, testPlan string) ([]string, error) {
 	}
 
 	return tests, nil
+}
+
+func sanitizeTests(tests []string) []string {
+	for i, test := range tests {
+		processed := strings.Replace(test, " ", "\\ ", -1)
+		processed = strings.TrimSuffix(processed, "()")
+		tests[i] = processed
+	}
+
+	return tests
 }
 
 func shardAlphabetically(tests []string, shards int) [][]string {
