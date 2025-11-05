@@ -19,12 +19,13 @@ type_tags:
 - test
 
 project_type_tags:
+- cordova
+- flutter
+- ionic
 - ios
+- kotlin-multiplatform
 - macos
 - react-native
-- cordova
-- ionic
-- flutter
 
 toolkit:
   go:
